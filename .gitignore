@@ -1,0 +1,11 @@
+.venv/
+.env
+.env.live
+__pycache__/
+*.pyc
+node_modules/
+dist/
+web/
+media/_sent_emails/
+.DS_Store
+.claude/

@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: campdash
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-campdash}
+      POSTGRES_DB: campdash
+    volumes:
+      - campdash-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "campdash"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    env_file: .env
+    environment:
+      # Override the DB host to point at the compose service (the .env value is for local dev).
+      CD_DATABASE_URL: postgresql+asyncpg://campdash:${POSTGRES_PASSWORD:-campdash}@db:5432/campdash
+      CD_AUTO_CREATE_TABLES: "false"
+      CD_WEB_DIR: web
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  campdash-db:

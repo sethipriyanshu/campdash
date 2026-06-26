@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CampDash · Admin</title>
+<style>
+  :root { color-scheme: light; }
+  body { margin: 0; background: #f7f7f7; color: #191919; font-family: system-ui, -apple-system, sans-serif; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 20px; }
+  h1 { font-size: 20px; margin: 0 0 2px; } h1 b { color: #ff3008; }
+  .sub { color: #767676; font-size: 13px; margin: 0 0 16px; }
+  .bar { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+  input { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 9px 11px; font-size: 14px; outline: none; }
+  button { border: none; border-radius: 8px; padding: 9px 13px; font-size: 13px; font-weight: 700; cursor: pointer; }
+  .btn-key { background: #ff3008; color: #fff; } .btn-no { background: #e9e9e9; color: #191919; }
+  .btn-go { background: #16a06a; color: #fff; }
+  .stat { background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 14px 16px; margin-bottom: 14px; font-size: 15px; }
+  .stat b { font-size: 22px; color: #ff3008; }
+  table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #eee; border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 10px 12px; font-size: 13px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+  th { color: #767676; font-weight: 600; text-transform: uppercase; font-size: 11px; }
+  .pill { font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 700; }
+  .PAID { background: #e6f7ef; color: #16a06a; } .EMAIL_FAILED { background: #fde9e6; color: #ff3008; }
+  .msg { margin-top: 12px; font-size: 13px; color: #767676; }
+  .empty { padding: 28px; text-align: center; color: #aaa; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Camp<b>Dash</b> · Admin</h1>
+  <p class="sub">Orders + sales. Resend a photo if an email failed.</p>
+
+  <div class="bar">
+    <input id="key" type="password" placeholder="Admin key" style="flex:1;min-width:160px" />
+    <button class="btn-key" onclick="saveKey()">Save key</button>
+    <button class="btn-no" onclick="load()">Refresh</button>
+  </div>
+
+  <div id="stat" class="stat">Enter your admin key and refresh.</div>
+  <table>
+    <thead><tr><th>When</th><th>Item</th><th>Total</th><th>Email</th><th>Address</th><th>Status</th><th></th></tr></thead>
+    <tbody id="rows"><tr><td class="empty" colspan="7">—</td></tr></tbody>
+  </table>
+  <div id="msg" class="msg"></div>
+</div>
+
+<script>
+const KEY = 'cd_admin_key';
+const $ = (id) => document.getElementById(id);
+$('key').value = localStorage.getItem(KEY) || '';
+function saveKey() { localStorage.setItem(KEY, $('key').value); msg('Key saved.'); load(); }
+function msg(m) { $('msg').textContent = m || ''; }
+function hdr() { return { 'content-type': 'application/json', 'X-Admin-Key': localStorage.getItem(KEY) || '' }; }
+function esc(s){ return String(s ?? '').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+async function load() {
+  msg('');
+  let res;
+  try { res = await fetch('/api/admin/orders', { headers: hdr() }); }
+  catch (e) { msg('Network error: ' + e.message); return; }
+  if (res.status === 403) { msg('Wrong admin key.'); $('stat').textContent='Wrong admin key.'; return; }
+  const d = await res.json();
+  $('stat').innerHTML = `Sales: <b>${d.sales_total} SB</b> &nbsp; · &nbsp; ${d.count} order(s)`;
+  const tb = $('rows');
+  if (!d.orders.length) { tb.innerHTML = '<tr><td class="empty" colspan="7">No orders yet.</td></tr>'; return; }
+  tb.innerHTML = d.orders.map(o => `
+    <tr>
+      <td>${new Date(o.created_at).toLocaleString()}</td>
+      <td>${o.qty}× ${esc(o.item)}</td>
+      <td><b>${o.total} SB</b></td>
+      <td>${esc(o.email)}</td>
+      <td>${esc(o.address)}</td>
+      <td><span class="pill ${o.status}">${o.status}</span>${o.email_error ? '<br><span style="color:#ff3008;font-size:11px">'+esc(o.email_error)+'</span>' : ''}</td>
+      <td><button class="btn-go" onclick="resend('${o.id}')">Resend photo</button></td>
+    </tr>`).join('');
+}
+async function resend(id) {
+  msg('Resending…');
+  const res = await fetch(`/api/admin/orders/${id}/resend-email`, { method:'POST', headers: hdr() });
+  const d = await res.json().catch(()=>({}));
+  msg(res.ok ? (d.emailed ? 'Photo resent.' : 'Resend failed: '+(d.error||'')) : 'Failed: '+(d.detail||res.status));
+  load();
+}
+if (localStorage.getItem(KEY)) load();
+</script>
+</body>
+</html>
