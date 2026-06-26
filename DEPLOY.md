@@ -62,7 +62,8 @@ goes straight to the mobile menu.
 - **Email cap:** Gmail ~500/day. Over that, orders still record PAID — Resend later from /admin.
 
 ## Security checklist
-- [ ] Strong `POSTGRES_PASSWORD`, fresh `CD_FERNET_KEY`, real `CD_ADMIN_KEY`.
+- [ ] Strong `POSTGRES_PASSWORD`, fresh `CD_FERNET_KEY`. (`CD_ADMIN_KEY` is intentionally kept as
+      `codedaycodeday12` across the event apps.)
 - [ ] `CD_CORS_ORIGINS` = `["https://campdash.fun"]`; HTTPS only.
 - [ ] `.env` never committed; Gmail App Password (revocable) not your main password.
 - [ ] Per-card checkout rate limit on (default 8 / 5 min).
