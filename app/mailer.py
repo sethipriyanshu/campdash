@@ -76,13 +76,8 @@ async def send_order_email(
     s = get_settings()
     photo = _resolve_photo(photo_path)
 
-    # 1) SMTP (e.g. Gmail) — preferred when configured; sends to any recipient.
-    if s.smtp_host and s.smtp_user:
-        await asyncio.to_thread(_send_smtp, to=to, subject=subject, html=html,
-                                photo=photo, photo_name=photo_name)
-        return
-
-    # 2) Resend API.
+    # 1) Resend API (HTTP) — preferred when a key is set. Works on hosts that block SMTP ports
+    #    (e.g. Railway). Sends to any recipient once the sender domain is verified.
     if s.resend_api_key:
         payload = {"from": s.mail_from, "to": [to], "subject": subject, "html": html}
         if photo:
@@ -92,6 +87,12 @@ async def send_order_email(
             r = await client.post(RESEND_URL, headers={"Authorization": f"Bearer {s.resend_api_key}"}, json=payload)
             if r.status_code >= 300:
                 raise RuntimeError(f"Resend error {r.status_code}: {r.text[:200]}")
+        return
+
+    # 2) SMTP (e.g. Gmail) — used locally where SMTP ports are open.
+    if s.smtp_host and s.smtp_user:
+        await asyncio.to_thread(_send_smtp, to=to, subject=subject, html=html,
+                                photo=photo, photo_name=photo_name)
         return
 
     # 3) DEV mode — log instead of sending so the flow stays verifiable.
