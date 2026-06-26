@@ -68,9 +68,12 @@ def get_settings() -> Settings:
     global _settings
     if _settings is None:
         s = Settings()
-        # If CD_DATABASE_URL wasn't set but the host provides DATABASE_URL (managed Postgres), use it.
-        if s.database_url == _DEFAULT_DB and os.environ.get("DATABASE_URL"):
-            s.database_url = os.environ["DATABASE_URL"]
+        # If CD_DATABASE_URL wasn't set, fall back to any DB URL the host injected (managed Postgres).
+        if s.database_url == _DEFAULT_DB:
+            for key in ("DATABASE_URL", "DATABASE_PUBLIC_URL", "POSTGRES_URL"):
+                if os.environ.get(key):
+                    s.database_url = os.environ[key]
+                    break
         s.database_url = _normalize_db_url(s.database_url)  # coerce driver + strip libpq-only params
         if not s.fernet_key:
             if s.env != "dev":
