@@ -9,11 +9,18 @@ _DEFAULT_DB = "postgresql+asyncpg://campdash:campdash@localhost:5436/campdash"
 
 
 def _normalize_db_url(url: str) -> str:
-    """Managed hosts hand out postgres://… or postgresql://… — coerce to the asyncpg driver."""
+    """Managed hosts hand out postgres://… or postgresql://… (often with ?sslmode=require, which
+    asyncpg rejects). Coerce to the asyncpg driver and strip libpq-only query params; SSL itself
+    is configured in db.py for remote hosts."""
+    import re
+
     if url.startswith("postgres://"):
-        return url.replace("postgres://", "postgresql+asyncpg://", 1)
-    if url.startswith("postgresql://"):
-        return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+    elif url.startswith("postgresql://"):
+        url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    # Drop sslmode / channel_binding query params asyncpg doesn't understand.
+    url = re.sub(r"[?&](sslmode|channel_binding|target_session_attrs)=[^&]*", "", url)
+    url = url.replace("?&", "?").rstrip("?&")
     return url
 
 
@@ -63,7 +70,8 @@ def get_settings() -> Settings:
         s = Settings()
         # If CD_DATABASE_URL wasn't set but the host provides DATABASE_URL (managed Postgres), use it.
         if s.database_url == _DEFAULT_DB and os.environ.get("DATABASE_URL"):
-            s.database_url = _normalize_db_url(os.environ["DATABASE_URL"])
+            s.database_url = os.environ["DATABASE_URL"]
+        s.database_url = _normalize_db_url(s.database_url)  # coerce driver + strip libpq-only params
         if not s.fernet_key:
             if s.env != "dev":
                 raise RuntimeError("CD_FERNET_KEY is required outside dev")
