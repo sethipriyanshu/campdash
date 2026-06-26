@@ -1,6 +1,16 @@
-# CampDash API image. The mobile UI is pre-built into web/ before docker build (see deploy.sh).
-FROM python:3.13-slim
+# CampDash — single image that builds the UI and serves UI + API + /admin.
+# Works with a plain `docker build` on any host (Railway, Render, Fly, a VM…). No pre-build step.
 
+# Stage 1: build the mobile UI
+FROM node:20-slim AS web
+WORKDIR /ui
+COPY frontend/package*.json ./
+RUN npm install
+COPY frontend/ ./
+RUN npm run build
+
+# Stage 2: the Python API (serves the built UI from /web)
+FROM python:3.13-slim
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
 WORKDIR /app
 
@@ -13,7 +23,7 @@ COPY alembic/ ./alembic/
 COPY alembic.ini ./
 COPY admin/ ./admin/
 COPY media/ ./media/
-COPY web/ ./web/
+COPY --from=web /ui/dist ./web
 
-# Apply migrations, then serve (UI + API + /admin from one origin).
-CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8080"]
+# Managed hosts inject $PORT; default 8080 for local/compose. Migrations run on boot.
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}"]

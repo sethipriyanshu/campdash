@@ -1,14 +1,26 @@
 from __future__ import annotations
 
+import os
 import warnings
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_DEFAULT_DB = "postgresql+asyncpg://campdash:campdash@localhost:5436/campdash"
+
+
+def _normalize_db_url(url: str) -> str:
+    """Managed hosts hand out postgres://… or postgresql://… — coerce to the asyncpg driver."""
+    if url.startswith("postgres://"):
+        return url.replace("postgres://", "postgresql+asyncpg://", 1)
+    if url.startswith("postgresql://"):
+        return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    return url
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_prefix="CD_", extra="ignore")
 
-    database_url: str = "postgresql+asyncpg://campdash:campdash@localhost:5436/campdash"
+    database_url: str = _DEFAULT_DB
 
     # shadybank money rail
     bank_api_url: str = "http://127.0.0.1:8021"
@@ -49,6 +61,9 @@ def get_settings() -> Settings:
     global _settings
     if _settings is None:
         s = Settings()
+        # If CD_DATABASE_URL wasn't set but the host provides DATABASE_URL (managed Postgres), use it.
+        if s.database_url == _DEFAULT_DB and os.environ.get("DATABASE_URL"):
+            s.database_url = _normalize_db_url(os.environ["DATABASE_URL"])
         if not s.fernet_key:
             if s.env != "dev":
                 raise RuntimeError("CD_FERNET_KEY is required outside dev")
