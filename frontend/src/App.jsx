@@ -35,9 +35,6 @@ export default function App() {
         <Done order={view.order} onMore={() => setView({ name: 'menu' })} />
       )}
 
-      <footer className="footer">
-        Orders are delivered electronically. No refunds on vibes.
-      </footer>
     </div>
   );
 }
