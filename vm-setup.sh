@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # CampDash one-shot VM setup (Ubuntu, e.g. Oracle Always-Free).
-# Installs Docker + Node + Caddy, deploys the app, and serves https://campdash.fun.
+# Installs Docker + Node + Caddy, deploys the app, and serves https://campdash.shop.
 #
 # Usage on the VM (after `git clone` + editing .env):
 #   cd campdash && cp .env.prod.example .env && nano .env   # fill secrets
@@ -8,7 +8,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-DOMAIN="${1:-campdash.fun}"
+DOMAIN="${1:-campdash.shop}"
 
 if [ ! -f .env ]; then
   echo "!! No .env found. Run: cp .env.prod.example .env  then edit it, then re-run."
