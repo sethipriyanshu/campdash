@@ -20,6 +20,7 @@ export default function App() {
         <span className="tag tag-makers">From the makers of the best grilled cheese at the Night Market.</span>
       </header>
 
+      {view.name === 'menu' && <PartnerBanner />}
       {view.name === 'menu' && (
         <Menu menu={menu} err={err} onPick={(item) => setView({ name: 'checkout', item })} />
       )}
@@ -36,6 +37,18 @@ export default function App() {
       )}
 
     </div>
+  );
+}
+
+function PartnerBanner() {
+  return (
+    <a className="partner" href="https://toorbets.com" target="_blank" rel="noopener noreferrer">
+      <span className="partner-dice">🎲</span>
+      <span className="partner-text">
+        <b>ToorBets.com</b> — our partner. Bet your ShadyBucks while you wait.
+      </span>
+      <span className="partner-cta">Bet now →</span>
+    </a>
   );
 }
 
