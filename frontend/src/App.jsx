@@ -42,10 +42,10 @@ export default function App() {
 
 function PartnerBanner() {
   return (
-    <a className="partner" href="https://toorbets.com" target="_blank" rel="noopener noreferrer">
+    <a className="partner" href="https://toorbet.com" target="_blank" rel="noopener noreferrer">
       <span className="partner-dice">🎲</span>
       <span className="partner-text">
-        <b>ToorBets.com</b> — our partner. Bet your ShadyBucks while you wait.
+        <b>ToorBet.com</b> — our partner. Bet your ShadyBucks while you wait.
       </span>
       <span className="partner-cta">Bet now →</span>
     </a>
